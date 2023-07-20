@@ -16,17 +16,12 @@ namespace FTP_Client
     public partial class Form1 : Form
     {
 
-        /*
-         * 可能需要定义的控件：
-         * 五个textbox： tb_IP（ftp地址）, tb_port（端口）, tb_username（用户名）, tb_password（密码）, tb_path（本地文件目录）
-         * 三个listbox： lsb_local, lsb_server, lsb_status
-         * 四个button： btn_conn（建立连接）, btn_setPath（设置路径）, btn_upload（上传）, btn_download（下载）
-         */
+
 
         /*ps：针对断点续传，可能还需要其他的考量*/
 
         //此处定义实现FTP功能时需要的所有全局变量
-        #region  Private variable      
+        #region  Private variable
         private TcpClient cmdServer;
         private TcpClient dataServer;
         private NetworkStream cmdStrmWtr;
@@ -39,13 +34,11 @@ namespace FTP_Client
         #endregion
 
         // 此处定义实现FTP相关的一些全局函数
-        #region  Private Functions  
+        #region  Private Functions
 
         /// <summary>
-        /// 获取命令端口返回结果，并记录在lsb_status上 : 代码中有些变量涉及到前端控件的命名，此处前端还未完成，所以会报错
+        /// 获取命令端口返回结果，并记录在lsb_status上
         /// </summary>
-        /// 
-
         private String getSatus()
         {
 
@@ -56,7 +49,7 @@ namespace FTP_Client
         }
 
         /// <summary>
-        /// 进入被动模式，并初始化数据端口的输入输出流 :  代码中有些变量涉及到前端控件的命名，此处前端还未完成，所以会报错
+        /// 进入被动模式，并初始化数据端口的输入输出流
         /// </summary>
         private void openDataPort()
         {
@@ -84,7 +77,6 @@ namespace FTP_Client
             dataStrmWtr = dataServer.GetStream();
         }
 
-
         /// <summary>
         /// 断开数据端口的连接
         /// </summary>
@@ -98,10 +90,11 @@ namespace FTP_Client
             szData = System.Text.Encoding.ASCII.GetBytes(cmdData.ToCharArray());
             cmdStrmWtr.Write(szData, 0, szData.Length);
             this.getSatus();
+
         }
 
         /// <summary>
-        /// 获得/刷新 右侧的服务器文件列表，这里的右侧只是认为在前端界面布局时认为该控件设计在右侧 :  代码中有些变量涉及到前端控件的命名，此处前端还未完成，所以会报错
+        /// 获得/刷新 右侧的服务器文件列表
         /// </summary>
         private void freshFileBox_Right()
         {
@@ -127,7 +120,7 @@ namespace FTP_Client
         }
 
         /// <summary>
-        /// 获得/刷新 左侧的本地文件列表，这里的左侧只是认为在前端界面布局时认为该控件设计在左侧 :  代码中有些变量涉及到前端控件的命名，此处前端还未完成，所以会报错
+        /// 获得/刷新 左侧的本地文件列表
         /// </summary>
         private void freshFileBox_Left()
         {
@@ -152,7 +145,7 @@ namespace FTP_Client
 
 
         //此部分用于处理连接按钮点击事件
-        #region  Button:  Connect & Disconnect 
+        #region  Button:  Connect & Disconnect
 
         private void btn_conn_Click(object sender, EventArgs e)
         {
@@ -227,7 +220,8 @@ namespace FTP_Client
         #endregion
 
         // 此处设置选择本地路径 ：代码中有些变量涉及到前端控件的命名，此处前端还未完成，所以会报错
-        #region  Button:  Set Path 
+        #region  Button:  Set Path
+
         private void btn_setPath_Click(object sender, EventArgs e)
         {
             string path = string.Empty;
@@ -247,7 +241,7 @@ namespace FTP_Client
 
 
         // 下面这片区域实现上传和下载功能 ：代码中有些变量涉及到前端控件的命名，此处前端还未完成，所以会报错
-        #region  Button:  upload & download  
+        #region  Button:  upload & download
 
         /// <summary>
         /// 上传

@@ -246,6 +246,19 @@ namespace FTP_Client
         /// <summary>
         /// 上传
         /// </summary>
+        private long GetRemoteFileSize(string fileName)
+        {
+            cmdData = "SIZE " + fileName + CRLF;
+            szData = System.Text.Encoding.ASCII.GetBytes(cmdData.ToCharArray());
+            cmdStrmWtr.Write(szData, 0, szData.Length);
+            string response = getSatus();
+            if (response.StartsWith("213"))
+            {
+                return long.Parse(response.Substring(4));
+            }
+            return -1;
+        }
+        
         private void btn_upload_Click(object sender, EventArgs e)
         {
             if (tb_path.Text == "" || lsb_local.SelectedIndex < 0)
@@ -283,10 +296,25 @@ namespace FTP_Client
             Cursor.Current = cr;
 
         }
+        
+
+
+        
+
 
         /// <summary>
         /// 下载
         /// </summary>
+
+        private long GetLocalFileSize(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                return new FileInfo(filePath).Length;
+            }
+            return -1;
+        }
+        
         private void btn_download_Click(object sender, EventArgs e)
         {
 

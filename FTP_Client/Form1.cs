@@ -246,126 +246,6 @@ namespace FTP_Client
         /// <summary>
         /// 上传
         /// </summary>
-        private long GetRemoteFileSize(string fileName)
-        {
-            cmdData = "SIZE " + fileName + CRLF;
-            szData = System.Text.Encoding.ASCII.GetBytes(cmdData.ToCharArray());
-            cmdStrmWtr.Write(szData, 0, szData.Length);
-            string response = getSatus();
-            if (response.StartsWith("213"))
-            {
-                return long.Parse(response.Substring(4));
-            }
-            return -1;
-        }
-
-
-         private long GetLocalFileSize(string filePath)
-        {
-            if (File.Exists(filePath))
-            {
-                return new FileInfo(filePath).Length;
-            }
-            return -1;
-        }
-
-
-        // 正常的上传逻辑
-        private void NormalUpload(string filePath)
-        {
-            try
-            {
-                // 连接到服务器的数据端口
-                this.openDataPort();
-        
-                string fileName = Path.GetFileName(filePath);
-        
-                // 使用 STOR 命令告知服务器要上传文件
-                cmdData = "STOR " + fileName + CRLF;
-                szData = System.Text.Encoding.ASCII.GetBytes(cmdData.ToCharArray());
-                cmdStrmWtr.Write(szData, 0, szData.Length);
-                this.getSatus();
-        
-                // 上传文件数据
-                FileStream fstrm = new FileStream(filePath, FileMode.Open);
-                byte[] fbytes = new byte[1030];
-                int cnt = 0;
-                while ((cnt = fstrm.Read(fbytes, 0, 1024)) > 0)
-                {
-                    dataStrmWtr.Write(fbytes, 0, cnt);
-                }
-                fstrm.Close();
-        
-                // 断开数据端口连接
-                this.closeDataPort();
-        
-                // 刷新服务器文件列表
-                this.freshFileBox_Right();
-            }
-            catch (Exception ex)
-            {
-                lsb_status.Items.Add("ERROR: " + ex.Message);
-            }
-        }
-
-        // 断点续传上传逻辑
-        private bool ResumeUpload(long resumeOffset, string filePath)
-        {
-            try
-            {
-                // 连接到服务器的数据端口
-                this.openDataPort();
-        
-                // 发送 REST 命令通知服务器从指定偏移量继续上传
-                cmdData = "REST " + resumeOffset + CRLF;
-                szData = System.Text.Encoding.ASCII.GetBytes(cmdData.ToCharArray());
-                cmdStrmWtr.Write(szData, 0, szData.Length);
-                string response = getSatus();
-                if (!response.StartsWith("350"))
-                {
-                    // 服务器不支持断点续传
-                    this.closeDataPort();
-                    NormalUpload(filePath);
-                    return false;
-                }
-        
-                // 使用 STOR 命令告知服务器在现有文件末尾追加数据
-                cmdData = "APPE " + fileName + CRLF;
-                szData = System.Text.Encoding.ASCII.GetBytes(cmdData.ToCharArray());
-                cmdStrmWtr.Write(szData, 0, szData.Length);
-                this.getSatus();
-        
-                // 从指定偏移量开始上传
-                FileStream fstrm = new FileStream(filePath, FileMode.Open);
-                fstrm.Seek(resumeOffset, SeekOrigin.Begin);
-                byte[] fbytes = new byte[1030];
-                int cnt = 0;
-                while ((cnt = fstrm.Read(fbytes, 0, 1024)) > 0)
-                {
-                    dataStrmWtr.Write(fbytes, 0, cnt);
-                }
-                fstrm.Close();
-        
-                // 断开数据端口连接
-                this.closeDataPort();
-        
-                // 刷新服务器文件列表
-                this.freshFileBox_Right();
-        
-                return true;
-            }
-            catch (Exception ex)
-            {
-                lsb_status.Items.Add("ERROR: " + ex.Message);
-                return false;
-            }
-        }
-
-        
-        
-
-
-        //上传文件过程
         private void btn_upload_Click(object sender, EventArgs e)
         {
             if (tb_path.Text == "" || lsb_local.SelectedIndex < 0)
@@ -380,145 +260,33 @@ namespace FTP_Client
             string fileName = lsb_local.Items[lsb_local.SelectedIndex].ToString();
             string filePath = tb_path.Text + "\\" + fileName;
 
-            // 获取本地文件大小
-            long localFileSize = GetLocalFileSize(filePath);
-        
-            // 获取服务器上已存在文件的大小
-            long remoteFileSize = GetRemoteFileSize(fileName);
+            this.openDataPort();
 
-            // 如果服务器上文件已存在，则开始断点续传
-            if (remoteFileSize >= 0)
+            cmdData = "STOR " + fileName + CRLF;
+            szData = System.Text.Encoding.ASCII.GetBytes(cmdData.ToCharArray());
+            cmdStrmWtr.Write(szData, 0, szData.Length);
+            this.getSatus();
+
+            FileStream fstrm = new FileStream(filePath, FileMode.Open);
+            byte[] fbytes = new byte[1030];
+            int cnt = 0;
+            while ((cnt = fstrm.Read(fbytes, 0, 1024)) > 0)
             {
-                if (remoteFileSize >= localFileSize)
-                {
-                    MessageBox.Show("服务器上已存在同名文件且大小不小于本地文件，无需上传。", "提示");
-                    return;
-                }
-                else
-                {
-                    if (ResumeUpload(remoteFileSize, filePath))
-                    {
-                        MessageBox.Show("文件上传完成。", "提示");
-                    }
-                    else
-                    {
-                        MessageBox.Show("文件上传失败。", "错误");
-                    }
-                }
+                dataStrmWtr.Write(fbytes, 0, cnt);
             }
-            else
-            {
-                // 服务器上文件不存在，执行正常的上传过程
-                NormalUpload(filePath);
-            }
-            
+            fstrm.Close();
+
+            this.closeDataPort();
+
+            this.freshFileBox_Right();
+
             Cursor.Current = cr;
+
         }
-
-
-        
-
 
         /// <summary>
         /// 下载
         /// </summary>
-
-       // 正常的下载逻辑
-        private void NormalDownload(string filePath)
-        {
-            try
-            {
-                // 连接到服务器的数据端口
-                this.openDataPort();
-        
-                string fileName = lsb_server.Items[lsb_server.SelectedIndex].ToString();
-                filePath = tb_path.Text + "\\" + fileName;
-        
-                // 使用 RETR 命令告知服务器要下载文件
-                cmdData = "RETR " + fileName + CRLF;
-                szData = System.Text.Encoding.ASCII.GetBytes(cmdData.ToCharArray());
-                cmdStrmWtr.Write(szData, 0, szData.Length);
-                this.getSatus();
-        
-                // 下载文件数据
-                FileStream fstrm = new FileStream(filePath, FileMode.Create);
-                byte[] fbytes = new byte[1030];
-                int cnt = 0;
-                while ((cnt = dataStrmWtr.Read(fbytes, 0, 1024)) > 0)
-                {
-                    fstrm.Write(fbytes, 0, cnt);
-                }
-                fstrm.Close();
-        
-                // 断开数据端口连接
-                this.closeDataPort();
-        
-                // 刷新本地文件列表
-                this.freshFileBox_Left();
-            }
-            catch (Exception ex)
-            {
-                lsb_status.Items.Add("ERROR: " + ex.Message);
-            }
-        }
-
-        // 断点续传下载逻辑
-        private bool ResumeDownload(long resumeOffset, string filePath)
-        {
-            try
-            {
-                // 连接到服务器的数据端口
-                this.openDataPort();
-        
-                // 发送 REST 命令通知服务器从指定偏移量继续下载
-                cmdData = "REST " + resumeOffset + CRLF;
-                szData = System.Text.Encoding.ASCII.GetBytes(cmdData.ToCharArray());
-                cmdStrmWtr.Write(szData, 0, szData.Length);
-                string response = getSatus();
-                if (!response.StartsWith("350"))
-                {
-                    // 服务器不支持断点续传
-                    this.closeDataPort();
-                    NormalDownload(filePath);
-                    return false;
-                }
-        
-                // 使用 RETR 命令告知服务器要下载文件
-                cmdData = "RETR " + fileName + CRLF;
-                szData = System.Text.Encoding.ASCII.GetBytes(cmdData.ToCharArray());
-                cmdStrmWtr.Write(szData, 0, szData.Length);
-                this.getSatus();
-        
-                // 从指定偏移量开始下载
-                FileStream fstrm = new FileStream(filePath, FileMode.Append);
-                byte[] fbytes = new byte[1030];
-                int cnt = 0;
-                while ((cnt = dataStrmWtr.Read(fbytes, 0, 1024)) > 0)
-                {
-                    fstrm.Write(fbytes, 0, cnt);
-                }
-                fstrm.Close();
-        
-                // 断开数据端口连接
-                this.closeDataPort();
-        
-                // 刷新本地文件列表
-                this.freshFileBox_Left();
-        
-                return true;
-            }
-            catch (Exception ex)
-            {
-                lsb_status.Items.Add("ERROR: " + ex.Message);
-                return false;
-            }
-        }
-
-
-
-
-
-        //下载文件过程
         private void btn_download_Click(object sender, EventArgs e)
         {
 
@@ -534,38 +302,27 @@ namespace FTP_Client
             string fileName = lsb_server.Items[lsb_server.SelectedIndex].ToString();
             string filePath = tb_path.Text + "\\" + fileName;
 
-            // 获取本地文件大小
-            long localFileSize = GetLocalFileSize(filePath);
-        
-            // 获取服务器文件大小
-            long remoteFileSize = GetRemoteFileSize(fileName);
+            this.openDataPort();
 
-            // 如果服务器上文件已存在，则开始断点续传
-            if (remoteFileSize >= 0)
+            cmdData = "RETR " + fileName + CRLF;
+            szData = System.Text.Encoding.ASCII.GetBytes(cmdData.ToCharArray());
+            cmdStrmWtr.Write(szData, 0, szData.Length);
+            this.getSatus();
+
+            FileStream fstrm = new FileStream(filePath, FileMode.OpenOrCreate);
+            char[] fchars = new char[1030];
+            byte[] fbytes = new byte[1030];
+            int cnt = 0;
+            while ((cnt = dataStrmWtr.Read(fbytes, 0, 1024)) > 0)
             {
-                if (localFileSize >= remoteFileSize)
-                {
-                    MessageBox.Show("本地已存在同名文件且大小不小于服务器文件，无需下载。", "提示");
-                    return;
-                }
-                else
-                {
-                    if (ResumeDownload(localFileSize, filePath))
-                    {
-                        MessageBox.Show("文件下载完成。", "提示");
-                    }
-                    else
-                    {
-                        MessageBox.Show("文件下载失败。", "错误");
-                    }
-                }
+                fstrm.Write(fbytes, 0, cnt);
             }
-            else
-            {
-                // 服务器上文件不存在，执行正常的下载过程
-                NormalDownload(filePath);
-            }
-            
+            fstrm.Close();
+
+            this.closeDataPort();
+
+            this.freshFileBox_Left();
+
             Cursor.Current = cr;
         }
 
@@ -578,6 +335,59 @@ namespace FTP_Client
         }
 
         private void Form1_Load(object sender, EventArgs e)
+        {
+            // 设置初始文件路径和默认值
+            tb_path.Text = "C:\\MyFiles";
+            lsb_local.SelectedIndex = -1;
+            lsb_server.SelectedIndex = -1;
+            // 加载本地文件列表
+            LoadLocalFiles();
+
+            // 进行其他初始化操作
+            InitializeOtherComponents();
+
+            // 注册事件处理程序
+            RegisterEventHandlers();
+
+        }
+        private void LoadLocalFiles()
+        {
+            // 加载本地文件列表的逻辑代码
+            // 将本地文件路径下的文件添加到 lsb_local 控件中
+            string[] files = Directory.GetFiles(tb_path.Text);
+            lsb_local.Items.Clear();
+            lsb_local.Items.AddRange(files);
+        }
+
+        private void InitializeOtherComponents()
+        {
+            // 初始化其他组件的逻辑代码
+            // 设置窗体标题
+            this.Text = "文件传输应用";
+
+            // 设置按钮的属性
+            btn_upload.Text = "上传";
+            btn_download.Text = "下载";
+
+            // 设置文本框的属性
+            tb_path.ReadOnly = true;
+
+            // 设置列表框的属性
+            lsb_local.SelectionMode = SelectionMode.One;
+            lsb_server.SelectionMode = SelectionMode.One;
+
+           
+        }
+
+        private void RegisterEventHandlers()
+        {
+            // 注册事件处理程序的逻辑代码
+            // 为按钮注册点击事件处理程序
+            btn_upload.Click += btn_upload_Click_1;
+            btn_download.Click += btn_download_Click;
+        }
+
+        private void btn_upload_Click_1(object sender, EventArgs e)
         {
 
         }

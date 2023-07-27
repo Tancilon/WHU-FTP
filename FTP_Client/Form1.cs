@@ -337,7 +337,7 @@ namespace FTP_Client
         private void Form1_Load(object sender, EventArgs e)
         {
             // 设置初始文件路径和默认值
-            tb_path.Text = "C:\\MyFiles";
+            //tb_path.Text = "C:\\MyFiles";
             lsb_local.SelectedIndex = -1;
             lsb_server.SelectedIndex = -1;
             // 加载本地文件列表
@@ -354,9 +354,9 @@ namespace FTP_Client
         {
             // 加载本地文件列表的逻辑代码
             // 将本地文件路径下的文件添加到 lsb_local 控件中
-            string[] files = Directory.GetFiles(tb_path.Text);
-            lsb_local.Items.Clear();
-            lsb_local.Items.AddRange(files);
+           // string[] files = Directory.GetFiles(tb_path.Text);
+           // lsb_local.Items.Clear();
+           // lsb_local.Items.AddRange(files);
         }
 
         private void InitializeOtherComponents()
